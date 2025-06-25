@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>障害物回避ランゲーム＋BGM</title>
+  <style>
+    body {
+      margin: 0;
+      background: #111;
+      font-family: sans-serif;
+      color: white;
+      text-align: center;
+    }
+
+    #game {
+      position: relative;
+      width: 320px;
+      height: 480px;
+      margin: 30px auto;
+      background: black;
+      border: 2px solid white;
+      overflow: hidden;
+    }
+
+    #player {
+      position: absolute;
+      bottom: 10px;
+      left: 145px;
+      width: 30px;
+      height: 30px;
+      background: lime;
+      border-radius: 5px;
+    }
+
+    .obstacle {
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      background: red;
+      border-radius: 5px;
+    }
+
+    #hud {
+      margin-top: 10px;
+      font-size: 18px;
+    }
+
+    #gameover {
+      color: red;
+      font-size: 28px;
+      margin-top: 20px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <h1>🏃‍♂️ 避けろ!! 障害物ラン</h1>
+  <div id="game">
+    <div id="player"></div>
+  </div>
+  <div id="hud">
+    ❤️ ライフ: <span id="lives">3</span>　
+    🧮 スコア: <span id="score">0</span>
+  </div>
+  <div id="gameover">💀 ゲームオーバー 💀<br><button onclick="location.reload()">リトライ</button></div>
+
+  <!-- BGMのaudioタグ -->
+  <audio id="bgm" src="Will_you_still_cry.mp3" loop></audio>
+
+  <script>
+    const game = document.getElementById("game");
+    const player = document.getElementById("player");
+    const livesDisplay = document.getElementById("lives");
+    const scoreDisplay = document.getElementById("score");
+    const gameOverText = document.getElementById("gameover");
+    const bgm = document.getElementById("bgm");
+
+    let playerX = 145;
+    let lives = 3;
+    let score = 0;
+    let gameSpeed = 2;
+    let isGameOver = false;
+
+    const keys = {};
+
+    document.addEventListener("keydown", e => keys[e.key] = true);
+    document.addEventListener("keyup", e => keys[e.key] = false);
+
+    // モバイルブラウザなどの自動再生制限対策で、最初のキー入力でBGM再生
+    document.addEventListener('keydown', () => {
+      if (bgm.paused) bgm.play();
+    }, { once: true });
+
+    function movePlayer() {
+      if (keys["ArrowLeft"] && playerX > 0) playerX -= 5;
+      if (keys["ArrowRight"] && playerX < 290) playerX += 5;
+      player.style.left = playerX + "px";
+    }
+
+    function createObstacle() {
+      const obs = document.createElement("div");
+      obs.classList.add("obstacle");
+      obs.style.left = Math.floor(Math.random() * 290) + "px";
+      obs.style.top = "0px";
+      game.appendChild(obs);
+      return obs;
+    }
+
+    const obstacles = [];
+
+    function updateObstacles() {
+      for (let i = obstacles.length - 1; i >= 0; i--) {
+        const obs = obstacles[i];
+        let y = parseInt(obs.style.top);
+        y += gameSpeed;
+        obs.style.top = y + "px";
+
+        // 衝突判定
+        const ox = parseInt(obs.style.left);
+        const oy = y;
+        const px = playerX;
+        const py = 440;
+
+        if (
+          px < ox + 30 &&
+          px + 30 > ox &&
+          py < oy + 30 &&
+          py + 30 > oy
+        ) {
+          lives--;
+          livesDisplay.textContent = lives;
+          game.removeChild(obs);
+          obstacles.splice(i, 1);
+          if (lives <= 0) {
+            endGame();
+            return;
+          }
+        }
+
+        // 画面外に出たら削除
+        if (y > 480) {
+          game.removeChild(obs);
+          obstacles.splice(i, 1);
+        }
+      }
+
+      // 徐々にスピードアップ（10点ごと）
+      if (score % 10 === 0 && score !== 0) {
+        gameSpeed += 0.01;
+      }
+    }
+
+    function endGame() {
+      isGameOver = true;
+      gameOverText.style.display = "block";
+      bgm.pause();
+      bgm.currentTime = 0;
+    }
+
+    function gameLoop() {
+      if (isGameOver) return;
+
+      movePlayer();
+      updateObstacles();
+
+      if (Math.random() < 0.03) {
+        obstacles.push(createObstacle());
+      }
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    // スコア加算
+    setInterval(() => {
+      if (!isGameOver) {
+        score++;
+        scoreDisplay.textContent = score;
+      }
+    }, 1000);
+
+    gameLoop();
+  </script>
+</body>
+</html>
