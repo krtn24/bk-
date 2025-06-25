@@ -1,145 +1,181 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <title>ぴえんラン</title>
+  <meta charset="UTF-8" />
+  <title>ぴえん回避ゲーム</title>
   <style>
     body {
       margin: 0;
-      overflow: hidden;
-      background-color: #f0f8ff;
+      background: #111;
       font-family: sans-serif;
+      color: white;
+      text-align: center;
     }
 
-    #gameArea {
+    #game {
       position: relative;
-      width: 100vw;
-      height: 100vh;
-      background-color: #fff;
+      width: 320px;
+      height: 480px;
+      margin: 30px auto;
+      background: black;
+      border: 2px solid white;
+      overflow: hidden;
     }
 
     #player {
       position: absolute;
-      bottom: 50px;
-      left: 100px;
-      width: 50px;
-      height: 50px;
-      background-color: #3498db;
-      border-radius: 50%;
+      bottom: 10px;
+      left: 145px;
+      width: 30px;
+      height: 30px;
+      background: lime;
+      border-radius: 5px;
     }
 
     .obstacle {
       position: absolute;
-      bottom: 50px;
       width: 30px;
       height: 30px;
-      font-size: 24px;
+      font-size: 26px;
       text-align: center;
       line-height: 30px;
     }
 
-    #life {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      font-size: 20px;
-      font-weight: bold;
+    #hud {
+      margin-top: 10px;
+      font-size: 18px;
     }
 
-    #gameOver {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 40px;
+    #gameover {
       color: red;
+      font-size: 28px;
+      margin-top: 20px;
       display: none;
     }
   </style>
 </head>
 <body>
-  <div id="gameArea">
+  <h1>🥺避けゲー</h1>
+  <div id="game">
     <div id="player"></div>
-    <div id="life">ライフ: 3</div>
-    <div id="gameOver">ゲームオーバー🥺</div>
-    <audio id="bgm" src="ぴえんのうた.mp3" autoplay loop></audio>
   </div>
+  <div id="hud">
+    ❤️ ライフ: <span id="lives">3</span>　
+    🧮 スコア: <span id="score">0</span>
+  </div>
+  <div id="gameover">💀 GAME OVER 💀<br><button onclick="location.reload()">リトライ</button></div>
+
+  <!-- BGM -->
+  <audio id="bgm" src="ぴえんのうた.mp3" loop></audio>
 
   <script>
-    const gameArea = document.getElementById('gameArea');
-    const player = document.getElementById('player');
-    const lifeDisplay = document.getElementById('life');
-    const gameOverDisplay = document.getElementById('gameOver');
-    const bgm = document.getElementById('bgm');
+    const game = document.getElementById("game");
+    const player = document.getElementById("player");
+    const livesDisplay = document.getElementById("lives");
+    const scoreDisplay = document.getElementById("score");
+    const gameOverText = document.getElementById("gameover");
+    const bgm = document.getElementById("bgm");
 
-    let life = 3;
-    let jumping = false;
+    let playerX = 145;
+    let lives = 3;
+    let score = 0;
+    let gameSpeed = 2;
+    let isGameOver = false;
 
+    const keys = {};
+    document.addEventListener("keydown", e => keys[e.key] = true);
+    document.addEventListener("keyup", e => keys[e.key] = false);
+
+    // 最初の操作でBGM再生
     document.addEventListener('keydown', () => {
-      if (bgm.paused) bgm.play(); // モバイル対策
-      if (!jumping) {
-        jumping = true;
-        let up = 0;
-        const jumpInterval = setInterval(() => {
-          up++;
-          player.style.bottom = 50 + up + "px";
-          if (up >= 50) {
-            clearInterval(jumpInterval);
-            const fallInterval = setInterval(() => {
-              up--;
-              player.style.bottom = 50 + up + "px";
-              if (up <= 0) {
-                clearInterval(fallInterval);
-                jumping = false;
-              }
-            }, 10);
-          }
-        }, 10);
-      }
-    }, { once: false });
+      if (bgm.paused) bgm.play();
+    }, { once: true });
+
+    function movePlayer() {
+      if (keys["ArrowLeft"] && playerX > 0) playerX -= 5;
+      if (keys["ArrowRight"] && playerX < 290) playerX += 5;
+      player.style.left = playerX + "px";
+    }
 
     function createObstacle() {
       const obs = document.createElement("div");
-      obs.className = "obstacle";
+      obs.classList.add("obstacle");
       obs.textContent = "🥺";
-      obs.style.left = window.innerWidth + "px";
-      gameArea.appendChild(obs);
+      obs.style.left = Math.floor(Math.random() * 290) + "px";
+      obs.style.top = "0px";
+      game.appendChild(obs);
+      return obs;
+    }
 
-      let pos = window.innerWidth;
-      const moveInterval = setInterval(() => {
-        pos -= 5;
-        obs.style.left = pos + "px";
+    const obstacles = [];
 
-        // 衝突判定
-        const playerRect = player.getBoundingClientRect();
-        const obsRect = obs.getBoundingClientRect();
+    function updateObstacles() {
+      for (let i = obstacles.length - 1; i >= 0; i--) {
+        const obs = obstacles[i];
+        let y = parseInt(obs.style.top);
+        y += gameSpeed;
+        obs.style.top = y + "px";
 
-        const isCollide = !(
-          playerRect.top > obsRect.bottom ||
-          playerRect.bottom < obsRect.top ||
-          playerRect.right < obsRect.left ||
-          playerRect.left > obsRect.right
-        );
+        const ox = parseInt(obs.style.left);
+        const oy = y;
+        const px = playerX;
+        const py = 440;
 
-        if (isCollide) {
-          life--;
-          lifeDisplay.textContent = "ライフ: " + life;
-          obs.remove();
-          clearInterval(moveInterval);
-          if (life <= 0) {
-            gameOverDisplay.style.display = "block";
-            clearInterval(spawnInterval);
+        if (
+          px < ox + 30 &&
+          px + 30 > ox &&
+          py < oy + 30 &&
+          py + 30 > oy
+        ) {
+          lives--;
+          livesDisplay.textContent = lives;
+          game.removeChild(obs);
+          obstacles.splice(i, 1);
+          if (lives <= 0) {
+            endGame();
+            return;
           }
         }
 
-        if (pos < -30) {
-          obs.remove();
-          clearInterval(moveInterval);
+        if (y > 480) {
+          game.removeChild(obs);
+          obstacles.splice(i, 1);
         }
-      }, 20);
+      }
+
+      // 徐々にスピードアップ
+      if (score % 10 === 0 && score !== 0) {
+        gameSpeed += 0.01;
+      }
     }
 
-    const spawnInterval = setInterval(createObstacle, 1500);
+    function endGame() {
+      isGameOver = true;
+      gameOverText.style.display = "block";
+      bgm.pause();
+      bgm.currentTime = 0;
+    }
+
+    function gameLoop() {
+      if (isGameOver) return;
+      movePlayer();
+      updateObstacles();
+
+      if (Math.random() < 0.03) {
+        obstacles.push(createObstacle());
+      }
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    setInterval(() => {
+      if (!isGameOver) {
+        score++;
+        scoreDisplay.textContent = score;
+      }
+    }, 1000);
+
+    gameLoop();
   </script>
 </body>
 </html>
