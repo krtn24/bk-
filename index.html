@@ -36,7 +36,7 @@
       position: absolute;
       width: 30px;
       height: 30px;
-      font-size: 26px;
+      font-size: 24px;
       text-align: center;
       line-height: 30px;
     }
@@ -55,7 +55,7 @@
   </style>
 </head>
 <body>
-  <h1>🥺</h1>
+  <h1>🥺避けゲー</h1>
   <div id="game">
     <div id="player"></div>
   </div>
@@ -63,10 +63,10 @@
     ❤️ ライフ: <span id="lives">3</span>　
     🧮 スコア: <span id="score">0</span>
   </div>
-  <div id="gameover"> GAME OVER <br><button onclick="location.reload()">リトライ</button></div>
+  <div id="gameover">💀 GAME OVER 💀<br><button onclick="location.reload()">リトライ</button></div>
 
   <!-- BGM -->
-  <audio id="bgm" src="pienBGM.mp3" loop></audio>
+  <audio id="bgm" src="ぴえんのうた.mp3" loop></audio>
 
   <script>
     const game = document.getElementById("game");
@@ -100,7 +100,7 @@
     function createObstacle() {
       const obs = document.createElement("div");
       obs.classList.add("obstacle");
-      obs.textContent = "🥺";
+      obs.textContent = "🥺"; // ←ここだけ変更！
       obs.style.left = Math.floor(Math.random() * 290) + "px";
       obs.style.top = "0px";
       game.appendChild(obs);
